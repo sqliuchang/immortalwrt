@@ -47,6 +47,7 @@ platform_pre_upgrade() {
 platform_do_upgrade() {
 	case "$(board_name)" in
 	aliyun,ap8220|\
+	tcl,linkhub-hh500v|\
 	zte,mf269-stock)
 		CI_UBIPART="rootfs"
 		nand_do_upgrade "$1"
@@ -170,10 +171,6 @@ platform_do_upgrade() {
 		CI_ROOTPART="rootfs"
 		CI_DATAPART="rootfs_data"
 		emmc_do_upgrade "$1"
-		;;
-	tcl,linkhub-hh500v)
-		tcl_upgrade_prepare
-		nand_do_upgrade "$1"
 		;;
 	tplink,deco-x80-5g|\
 	tplink,eap620hd-v1|\
