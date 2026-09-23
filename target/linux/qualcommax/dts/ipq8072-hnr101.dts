@@ -1,0 +1,568 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+/*
+ * Hisense HNR101 (IPQ8072A, Qualcomm AP-HK09 reference design)
+ *
+ * Hardware summary (from stock QSDK firmware / decompiled DTS):
+ *  - SoC:        Qualcomm IPQ8072A (4x Cortex-A53, NSS accelerated)
+ *  - RAM:        1 GiB DDR4
+ *  - NAND:       256 MiB QPIC NAND (stock A/B layout: rootfs / rootfs_1 / 2x WIFIFW)
+ *  - NOR:        8 MiB BLSP SPI NOR (full Qualcomm boot chain + 0:art + 0:ethphyfw)
+ *  - Ethernet:       Uniphy0 PSGMII -> QCA8075 @ mdio 8/9/10/11 (ESS ports 1-4)
+ *                Uniphy1 SGMII+ -> QCA8081 @ mdio 4 (ESS port 5, QGMAC)
+ *                Stock ESS: lan_bmp = ports1-5 (0x3e), wan_bmp = port6 (0x40)
+ *                Stock QSDK NSS-DP: only MAC IDs 1, 2 and 5 are instantiated.
+ *  - WiFi:       IPQ8072A built-in ath11k
+ *  - M.2 USB:    usb_0 (usb@8af8800)
+ *  - M.2 PCIE:   pcie0 (gen3, perst GPIO 58 and wake GPIO 59) is enabled.
+ *  - M.2 GPIO:   GPIO 0, 9, 29, 56
+ *  - USB:        usb_1 (usb@8cf8800)
+ *  - UART:       blsp1_uart5 @ 0x78b3000, 115200n8 (TTL console)
+ *  - Button:     reset, GPIO 55
+ *  - LEDs:       led_2g=GPIO 62, led_5g=GPIO 61, led_signal_green=GPIO 63,
+ *                led_signal_red=GPIO 2
+ */
+
+/dts-v1/;
+
+#include "ipq8074.dtsi"
+#include "ipq8074-ess.dtsi"
+#include "ipq8074-nss.dtsi"
+#include "ipq8074-hk-cpu.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+
+/ {
+	model = "Hisense HNR101";
+	compatible = "hisense,hnr101", "qcom,ipq8074";
+
+	aliases {
+		ethernet0 = &dp1;
+		ethernet1 = &dp2;
+		ethernet2 = &dp3;
+		ethernet3 = &dp4;
+		ethernet4 = &dp5_syn;
+
+		label-mac-device = &dp1;
+
+		led-boot = &led_signal_green;
+		led-failsafe = &led_signal_red;
+		led-running = &led_signal_green;
+		led-upgrade = &led_signal_red;
+		serial0 = &blsp1_uart5;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+		bootargs-append = " root=/dev/ubiblock0_1";
+	};
+
+	modem {
+		compatible = "gpio-export";
+		pinctrl-names = "default";
+		pinctrl-0 = <&modem_pins>;
+
+		/* GPIO 0: W_DISABLE1 <--> M.2 Pin 8 */
+		modem-w-disable1 {
+			gpio-export,name = "modem_w_disable1";
+			gpio-export,output = <1>;
+			gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>;
+		};
+
+		/* GPIO 9: FULL_CARD_POWER_OFF <--> M.2 Pin 6 */
+		modem-power {
+			gpio-export,name = "modem_power";
+			gpio-export,output = <1>;
+			gpios = <&tlmm 9 GPIO_ACTIVE_HIGH>;
+		};
+
+		/* GPIO 29: W_DISABLE2 <--> M.2 Pin 26 */
+		modem-w-disable2 {
+			gpio-export,name = "modem_w_disable2";
+			gpio-export,output = <1>;
+			gpios = <&tlmm 29 GPIO_ACTIVE_HIGH>;
+		};
+
+		/* GPIO 56: RESET <--> M.2 Pin 67 */
+		modem-reset {
+			gpio-export,name = "modem_reset";
+			gpio-export,output = <1>;
+			gpios = <&tlmm 56 GPIO_ACTIVE_HIGH>;
+		};
+	};
+
+	keys {
+		compatible = "gpio-keys";
+		pinctrl-0 = <&button_pins>;
+		pinctrl-names = "default";
+
+		reset {
+			label = "reset";
+			linux,code = <KEY_RESTART>;
+			gpios = <&tlmm 55 GPIO_ACTIVE_LOW>;
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led_2g {
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_WLAN;
+			gpios = <&tlmm 62 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_5g {
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_WLAN;
+			gpios = <&tlmm 61 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_signal_green: signal_green {
+			color = <LED_COLOR_ID_GREEN>;
+			function = "signal";
+			gpios = <&tlmm 63 GPIO_ACTIVE_HIGH>;
+		};
+
+		led_signal_red: signal_red {
+			color = <LED_COLOR_ID_RED>;
+			function = "signal";
+			gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
+		};
+	};
+};
+
+&tlmm {
+	mdio_pins: mdio-pins {
+		mdc {
+			pins = "gpio68";
+			function = "mdc";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+
+		mdio {
+			pins = "gpio69";
+			function = "mdio";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
+	};
+
+	button_pins: button-pins {
+		bias-pull-up;
+		drive-strength = <8>;
+		function = "gpio";
+		pins = "gpio55";
+	};
+
+	modem_pins: modem-pins {
+		modem_w_disable1 {
+			bias-pull-up;
+			drive-strength = <8>;
+			output-high;
+			pins = "gpio0";
+		};
+
+		modem_power {
+			bias-pull-up;
+			drive-strength = <8>;
+			output-high;
+			pins = "gpio9";
+		};
+
+		modem_w_disable2 {
+			bias-pull-up;
+			drive-strength = <8>;
+			output-high;
+			pins = "gpio29";
+		};
+
+		modem_reset {
+			bias-pull-up;
+			drive-strength = <8>;
+			output-high;
+			pins = "gpio56";
+		};
+	};
+
+	pcie0_default_state: pcie0-wake-gpio {
+		bias-pull-down;
+		drive-strength = <8>;
+		function = "pcie0_wake";
+		pins = "gpio59";
+	};
+
+	phy_rst_25: qca8081-reset {
+		gpio-hog;
+		gpios = <25 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "qca8081-reset";
+	};
+
+	phy_rst_44: ess-aux-reset {
+		gpio-hog;
+		gpios = <44 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "ess-aux-reset";
+	};
+
+};
+
+&blsp1_spi1 {
+	status = "okay";
+
+	flash@0 {
+		reg = <0>;
+		compatible = "jedec,spi-nor";
+		spi-max-frequency = <50000000>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "0:sbl1";
+				reg = <0x0 0x50000>;
+				read-only;
+			};
+
+			partition@50000 {
+				label = "0:mibib";
+				reg = <0x50000 0x10000>;
+				read-only;
+			};
+
+			partition@60000 {
+				label = "0:bootconfig";
+				reg = <0x60000 0x20000>;
+				read-only;
+			};
+
+			partition@80000 {
+				label = "0:bootconfig1";
+				reg = <0x80000 0x20000>;
+				read-only;
+			};
+
+			partition@a0000 {
+				label = "0:qsee";
+				reg = <0xa0000 0x180000>;
+				read-only;
+			};
+
+			partition@220000 {
+				label = "0:qsee_1";
+				reg = <0x220000 0x180000>;
+				read-only;
+			};
+
+			partition@3a0000 {
+				label = "0:devcfg";
+				reg = <0x3a0000 0x10000>;
+				read-only;
+			};
+
+			partition@3b0000 {
+				label = "0:devcfg_1";
+				reg = <0x3b0000 0x10000>;
+				read-only;
+			};
+
+			partition@3c0000 {
+				label = "0:apdp";
+				reg = <0x3c0000 0x10000>;
+				read-only;
+			};
+
+			partition@3d0000 {
+				label = "0:apdp_1";
+				reg = <0x3d0000 0x10000>;
+				read-only;
+			};
+
+			partition@3e0000 {
+				label = "0:rpm";
+				reg = <0x3e0000 0x40000>;
+				read-only;
+			};
+
+			partition@420000 {
+				label = "0:rpm_1";
+				reg = <0x420000 0x40000>;
+				read-only;
+			};
+
+			partition@460000 {
+				label = "0:cdt";
+				reg = <0x460000 0x10000>;
+				read-only;
+			};
+
+			partition@470000 {
+				label = "0:cdt_1";
+				reg = <0x470000 0x10000>;
+				read-only;
+			};
+
+			partition@480000 {
+				label = "0:appsblenv";
+				reg = <0x480000 0x10000>;
+
+				nvmem-layout {
+					compatible = "u-boot,env";
+				};
+			};
+
+			partition@490000 {
+				label = "0:appsbl";
+				reg = <0x490000 0xa0000>;
+				read-only;
+			};
+
+			partition@530000 {
+				label = "0:appsbl_1";
+				reg = <0x530000 0xa0000>;
+				read-only;
+			};
+
+			/* default empty! */
+			partition@5d0000 {
+				label = "0:art";
+				reg = <0x5d0000 0x40000>;
+				read-only;
+			};
+
+			partition@610000 {
+				label = "0:ethphyfw";
+				reg = <0x610000 0x80000>;
+				read-only;
+			};
+		};
+	};
+};
+
+&blsp1_uart5 {
+	status = "okay";
+};
+
+&cryptobam {
+	status = "okay";
+};
+
+&crypto {
+	status = "okay";
+};
+
+&prng {
+	status = "okay";
+};
+
+&qpic_bam {
+	status = "okay";
+};
+
+&qpic_nand {
+	status = "okay";
+
+	nand@0 {
+		reg = <0>;
+		/* MT29F2G08ABBGAH4 requires 8b/512B ECC; the 8-bit layout
+		 * (cw 532 / page stride 2128 = QSDK "oobsize 80") is also what
+		 * the stock U-Boot writes, so it must be used here. */
+		nand-ecc-strength = <8>;
+		nand-ecc-step-size = <512>;
+		nand-bus-width = <8>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			/* 110 MiB, OpenWrt UBI image */
+			partition@0 {
+				label = "rootfs";
+				reg = <0x0 0x6e00000>;
+			};
+
+			partition@6e00000 {
+				label = "0:wififw";
+				reg = <0x6e00000 0x800000>;
+				read-only;
+			};
+
+			/* 110 MiB, stock firmware A/B copy */
+			partition@7600000 {
+				label = "rootfs_1";
+				reg = <0x7600000 0x6e00000>;
+			};
+
+			partition@e400000 {
+				label = "0:wififw_1";
+				reg = <0xe400000 0x800000>;
+				read-only;
+			};
+		};
+	};
+};
+
+&qusb_phy_0 {
+	status = "okay";
+};
+
+&qusb_phy_1 {
+	status = "okay";
+};
+
+&ssphy_0 {
+	status = "okay";
+};
+
+&ssphy_1 {
+	status = "okay";
+};
+
+&usb_0 {
+	status = "okay";
+};
+
+&usb_1 {
+	status = "okay";
+};
+
+&mdio {
+	status = "okay";
+
+	pinctrl-0 = <&mdio_pins>;
+	pinctrl-names = "default";
+
+	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
+	reset-delay-us = <10000>;
+	reset-post-delay-us = <200000>;
+
+	ethernet-phy-package@0 {
+		compatible = "qcom,qca8075-package";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
+		qcom,package-mode = "psgmii";
+
+		qca8075_8: ethernet-phy@8 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <8>;
+		};
+
+		qca8075_9: ethernet-phy@9 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <9>;
+		};
+
+		qca8075_10: ethernet-phy@10 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <10>;
+		};
+
+		qca8075_11: ethernet-phy@11 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <11>;
+		};
+	};
+
+	qca8081: ethernet-phy@4 {
+		compatible = "ethernet-phy-id004d.d101";
+		reg = <4>;
+	};
+};
+
+
+&switch {
+	status = "okay";
+
+	switch_lan_bmp = <(ESS_PORT1 | ESS_PORT2 | ESS_PORT3 | ESS_PORT4 | ESS_PORT5)>;
+	switch_wan_bmp = <ESS_PORT6>;
+	switch_mac_mode = <MAC_MODE_PSGMII>;
+	switch_mac_mode1 = <MAC_MODE_SGMII_CHANNEL0>;
+
+	qcom,port_phyinfo {
+		port@1 {
+			port_id = <1>;
+			phy_address = <8>;
+		};
+
+		port@2 {
+			port_id = <2>;
+			phy_address = <9>;
+		};
+
+		port@3 {
+			port_id = <3>;
+			phy_address = <10>;
+		};
+
+		port@4 {
+			port_id = <4>;
+			phy_address = <11>;
+		};
+
+		port@5 {
+			port_id = <5>;
+			phy_address = <4>;
+			port_mac_sel = "QGMAC_PORT";
+		};
+	};
+};
+
+&edma {
+	status = "okay";
+};
+
+&dp1 {
+	status = "okay";
+	phy-handle = <&qca8075_8>;
+	label = "lan1";
+	mac-address = [00 03 7f ba db ad];
+};
+
+&dp2 {
+	status = "okay";
+	phy-handle = <&qca8075_9>;
+	label = "lan2";
+	mac-address = [00 03 7f ba db ae];
+};
+
+&dp3 {
+	status = "disabled";
+};
+
+&dp4 {
+	status = "disabled";
+};
+
+&dp5 {
+	status = "disabled";
+};
+
+&dp5_syn {
+	status = "okay";
+	phy-handle = <&qca8081>;
+	label = "wan";
+	mac-address = [00 03 7f ba db af];
+};
+
+&pcie_qmp0 {
+	status = "okay";
+};
+
+&pcie0 {
+	status = "okay";
+	pinctrl-0 = <&pcie0_default_state>;
+	pinctrl-names = "default";
+	perst-gpios = <&tlmm 58 GPIO_ACTIVE_LOW>;
+};
+
+&wifi {
+	status = "okay";
+	qcom,ath11k-calibration-variant = "Hisense-HNR101";
+};

@@ -21,6 +21,7 @@ case "$FIRMWARE" in
 	dynalink,dl-wrx36|\
 	edgecore,eap102|\
 	edimax,cax1800|\
+	hisense,hnr101|\
 	netgear,rax120v2|\
 	netgear,rbr750|\
 	netgear,rbs750|\

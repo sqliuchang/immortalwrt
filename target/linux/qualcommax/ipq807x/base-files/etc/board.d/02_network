@@ -58,6 +58,9 @@ ipq807x_setup_interfaces()
 	tplink,eap660hd-v1)
 		ucidef_set_interface_lan "lan" "dhcp"
 		;;
+	hisense,hnr101)
+		ucidef_set_interfaces_lan_wan "lan1 lan2" "wan"
+	;;
 	netgear,rax120v2)
 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4 lan5" "wan"
 		;;

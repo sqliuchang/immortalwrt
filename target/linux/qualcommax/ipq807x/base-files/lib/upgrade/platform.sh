@@ -47,6 +47,7 @@ platform_pre_upgrade() {
 platform_do_upgrade() {
 	case "$(board_name)" in
 	aliyun,ap8220|\
+	hisense,hnr101|\
 	tcl,linkhub-hh500v|\
 	zte,mf269-stock)
 		CI_UBIPART="rootfs"

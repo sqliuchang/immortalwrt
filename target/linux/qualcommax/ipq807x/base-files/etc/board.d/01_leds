@@ -24,6 +24,10 @@ spectrum,sax1v1k)
 edgecore,eap102)
 	ucidef_set_led_netdev "wan" "WAN" "green:wanpoe" "wan"
 	;;
+hisense,hnr101)
+	ucidef_set_led_wlan "wlan5g" "WIFI 5GHz" "green:wlan" "phy0radio"
+	ucidef_set_led_wlan "wlan2g" "WIFI 2.4GHz" "blue:wlan" "phy1radio"
+	;;
 netgear,rax120v2)
 	ucidef_set_led_netdev "aqr" "AQR" "white:aqr" "lan5"
 	;;

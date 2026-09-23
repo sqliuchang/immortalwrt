@@ -189,6 +189,21 @@ define Device/edimax_cax1800
 endef
 TARGET_DEVICES += edimax_cax1800
 
+define Device/hisense_hnr101
+	$(call Device/FitImage)
+	$(call Device/UbiFit)
+	DEVICE_VENDOR := Hisense
+	DEVICE_MODEL := HNR101
+	BLOCKSIZE := 128k
+	PAGESIZE := 2048
+	DEVICE_DTS_CONFIG := config@hk09
+	SOC := ipq8072
+	DEVICE_PACKAGES := ipq-wifi-hisense_hnr101
+	IMAGES += factory.bin
+	IMAGE/factory.bin := append-ubi | qsdk-ipq-factory-nand
+endef
+TARGET_DEVICES += hisense_hnr101
+
 define Device/linksys_homewrk
 	$(call Device/FitImage)
 	$(call Device/UbiFit)
