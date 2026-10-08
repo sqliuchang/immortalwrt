@@ -18,8 +18,8 @@
  *  - USB:        usb_1 (usb@8cf8800)
  *  - UART:       blsp1_uart5 @ 0x78b3000, 115200n8 (TTL console)
  *  - Button:     reset, GPIO 55
- *  - LEDs:       led_2g=GPIO 62, led_5g=GPIO 61, led_signal_green=GPIO 63,
- *                led_signal_red=GPIO 2
+ *  - LEDs:       led_2g_green=GPIO 62, led_5g_blue=GPIO 61,
+ *                led_signal_green=GPIO 63, led_signal_red=GPIO 2,
  */
 
 /dts-v1/;
@@ -48,7 +48,6 @@
 
 		led-boot = &led_signal_green;
 		led-failsafe = &led_signal_red;
-		led-running = &led_signal_green;
 		led-upgrade = &led_signal_red;
 		serial0 = &blsp1_uart5;
 	};
@@ -107,27 +106,27 @@
 	leds {
 		compatible = "gpio-leds";
 
-		led_2g {
-			color = <LED_COLOR_ID_BLUE>;
-			function = LED_FUNCTION_WLAN;
+		led_2g_green: 2g_green {
+			color = <LED_COLOR_ID_GREEN>;
+			function = LED_FUNCTION_WLAN_2GHZ;
 			gpios = <&tlmm 62 GPIO_ACTIVE_HIGH>;
 		};
 
-		led_5g {
-			color = <LED_COLOR_ID_GREEN>;
-			function = LED_FUNCTION_WLAN;
+		led_5g_blue: 5g_blue {
+			color = <LED_COLOR_ID_BLUE>;
+			function = LED_FUNCTION_WLAN_5GHZ;
 			gpios = <&tlmm 61 GPIO_ACTIVE_HIGH>;
 		};
 
 		led_signal_green: signal_green {
 			color = <LED_COLOR_ID_GREEN>;
-			function = "signal";
+			function = LED_FUNCTION_MOBILE;
 			gpios = <&tlmm 63 GPIO_ACTIVE_HIGH>;
 		};
 
 		led_signal_red: signal_red {
 			color = <LED_COLOR_ID_RED>;
-			function = "signal";
+			function = LED_FUNCTION_MOBILE;
 			gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
 		};
 	};
